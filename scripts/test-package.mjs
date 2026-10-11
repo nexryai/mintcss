@@ -11,7 +11,7 @@ try {
     const result = execFileSync("npm", ["pack", "--dry-run=false", "--json", "--pack-destination", temporary], { cwd: root, encoding: "utf8" });
     const [packed] = JSON.parse(result);
     const files = packed.files.map(({ path }) => path);
-    for (const required of ["dist/index.js", "dist/index.d.ts", "dist/core.js", "dist/core.d.ts", "dist/testing.js", "dist/testing.d.ts", "LICENSE", "README.md"]) {
+    for (const required of ["dist/index.js", "dist/index.d.ts", "dist/core.js", "dist/core.d.ts", "dist/testing.js", "dist/testing.d.ts", "dist/next.js", "dist/next.d.ts", "LICENSE", "README.md"]) {
         assert.ok(files.includes(required), `Missing packed file: ${required}`);
     }
     assert.ok(files.every((path) => path.startsWith("dist/") || ["package.json", "LICENSE", "README.md"].includes(path)));
@@ -21,8 +21,11 @@ try {
         join(temporary, "consumer.mjs"),
         `
 import assert from 'node:assert/strict';
-import { css, globalCss, keyframes } from 'mintcss';
+import { createStyleRegistry, css, globalCss, keyframes } from 'mintcss';
 import { __resetCssForTests } from 'mintcss/testing';
+const registry = createStyleRegistry();
+const serverClass = registry.css({color: 'red'});
+assert.equal(registry.getStyles().css, '.' + serverClass + '{color:red;}');
 assert.equal(typeof css, 'function');
 assert.equal(typeof globalCss, 'function');
 assert.equal(typeof keyframes, 'function');
@@ -61,7 +64,9 @@ void [className, animation];
     execFileSync(process.execPath, [join(root, "node_modules/typescript/bin/tsc"), "--noEmit", "--strict", "--module", "NodeNext", "--target", "ES2021", join(temporary, "consumer.mts")], { cwd: temporary, stdio: "inherit" });
     const manifest = JSON.parse(readFileSync(join(temporary, "node_modules/mintcss/package.json"), "utf8"));
     assert.equal(Object.keys(manifest.dependencies ?? {}).length, 0);
-    assert.equal(Object.keys(manifest.peerDependencies ?? {}).length, 0);
+    assert.equal(manifest.peerDependenciesMeta.next.optional, true);
+    assert.equal(manifest.peerDependenciesMeta.react.optional, true);
+    assert.ok(readFileSync(join(temporary, "node_modules/mintcss/dist/next.js"), "utf8").startsWith('"use client";'));
     console.log(`Verified ${packed.filename}: ESM exports, standalone types, and package contents.`);
 } finally {
     rmSync(temporary, { recursive: true, force: true });

@@ -56,6 +56,7 @@ const declaration = (property: string, value: CSSValue) => {
 };
 
 const serializeRule = (selector: string, object: CSSObject): string => {
+    assertSafe(selector, "selector");
     let declarations = "";
     let nested = "";
 
@@ -98,20 +99,26 @@ const hash = (value: string) => {
     return (result >>> 0).toString(36);
 };
 
-const registry = () => {
+const registry = (nonce?: string) => {
     if (typeof document === "undefined") throw new Error("mintcss requires a browser document");
     if (styleElement?.isConnected && styleElement.ownerDocument === document) return styleElement;
     const existing = document.head.querySelector<HTMLStyleElement>(`style[${STYLE_ATTRIBUTE}]`);
     styleElement = existing ?? document.createElement("style");
     if (!existing) {
         styleElement.setAttribute(STYLE_ATTRIBUTE, "");
+        if (nonce !== undefined) styleElement.nonce = nonce;
         document.head.append(styleElement);
     }
     return styleElement;
 };
 
-const insert = (id: string, rule: string) => {
-    const target = registry();
+const insert = (id: string, rule: string, nonce?: string) => {
+    if (typeof document === "undefined") throw new Error("mintcss requires a browser document; use createStyleRegistry for SSR or useMintcss in Next.js");
+    // Streaming SSR can emit several style elements. Consult all of them.
+    for (const element of document.head.querySelectorAll<HTMLStyleElement>(`style[${STYLE_ATTRIBUTE}]`)) {
+        if ((element.dataset.mintcss ?? "").split(" ").includes(id)) return;
+    }
+    const target = registry(nonce);
     // The DOM is authoritative across module reloads and stylesheet replacement.
     const registeredInDOM = new Set((target.dataset.mintcss ?? "").split(" ").filter(Boolean));
     if (registeredInDOM.has(id)) return;
@@ -120,47 +127,83 @@ const insert = (id: string, rule: string) => {
     target.append(document.createTextNode(rule));
 };
 
-export const css = (object: CSSObject) => {
-    const id = `mint-${hash(canonicalize(object))}`;
-    insert(id, serializeRule(`.${id}`, object));
-    return id;
+const createStyleApi = (insert: (id: string, rule: string) => void) => ({
+    css: (object: CSSObject) => {
+        const id = `mint-${hash(canonicalize(object))}`;
+        insert(id, serializeRule(`.${id}`, object));
+        return id;
+    },
+
+    keyframes: (frames: Record<string, CSSDeclarations>) => {
+        const object = frames as CSSObject;
+        const name = `mint-kf-${hash(canonicalize(object))}`;
+        const body = Object.entries(object)
+            .sort(([left], [right]) => {
+                const position = (step: string) => (step === "from" ? 0 : step === "to" ? 100 : Number.parseInt(step, 10));
+                return position(left) - position(right);
+            })
+            .map(([step, properties]) => {
+                if (!/^(from|to|(?:\d|[1-9]\d|100)%)$/.test(step)) throw new Error(`Invalid keyframe step: ${step}`);
+                return serializeRule(step, properties as CSSObject);
+            })
+            .join("");
+        insert(name, `@keyframes ${name}{${body}}`);
+        return name;
+    },
+
+    globalCss: (rules: Record<string, CSSObject>) => {
+        const output = Object.entries(rules)
+            .map(([selector, object]) => {
+                if (selector.startsWith("@media") || selector.startsWith("@supports")) {
+                    assertConditionalRule(selector);
+                    return `${selector}{${Object.entries(object)
+                        .map(([nestedSelector, nestedObject]) => {
+                            assertSafe(nestedSelector, "selector");
+                            return serializeRule(nestedSelector, nestedObject as CSSObject);
+                        })
+                        .join("")}}`;
+                }
+                assertSafe(selector, "selector");
+                return serializeRule(selector, object);
+            })
+            .join("");
+        const id = `mint-global-${hash(output)}`;
+        insert(id, output);
+    },
+});
+
+export const { css, keyframes, globalCss } = createStyleApi(insert);
+
+export type StyleSnapshot = { ids: string[]; css: string };
+export type StyleApi = ReturnType<typeof createStyleApi>;
+export type StyleRegistry = StyleApi & {
+    getStyles: () => StyleSnapshot;
+    flush: () => StyleSnapshot;
 };
 
-export const keyframes = (frames: Record<string, CSSDeclarations>) => {
-    const object = frames as CSSObject;
-    const name = `mint-kf-${hash(canonicalize(object))}`;
-    const body = Object.entries(object)
-        .sort(([left], [right]) => {
-            const position = (step: string) => (step === "from" ? 0 : step === "to" ? 100 : Number.parseInt(step, 10));
-            return position(left) - position(right);
-        })
-        .map(([step, properties]) => {
-            if (!/^(from|to|(?:\d|[1-9]\d|100)%)$/.test(step)) throw new Error(`Invalid keyframe step: ${step}`);
-            return serializeRule(step, properties as CSSObject);
-        })
-        .join("");
-    insert(name, `@keyframes ${name}{${body}}`);
-    return name;
-};
-
-export const globalCss = (rules: Record<string, CSSObject>) => {
-    const output = Object.entries(rules)
-        .map(([selector, object]) => {
-            if (selector.startsWith("@media") || selector.startsWith("@supports")) {
-                assertConditionalRule(selector);
-                return `${selector}{${Object.entries(object)
-                    .map(([nestedSelector, nestedObject]) => {
-                        assertSafe(nestedSelector, "selector");
-                        return serializeRule(nestedSelector, nestedObject as CSSObject);
-                    })
-                    .join("")}}`;
-            }
-            assertSafe(selector, "selector");
-            return serializeRule(selector, object);
-        })
-        .join("");
-    const id = `mint-global-${hash(output)}`;
-    insert(id, output);
+/** Create a registry per server render. Browser calls also insert into the DOM. */
+export const createStyleRegistry = (options: { nonce?: string } = {}): StyleRegistry => {
+    const rules = new Map<string, string>();
+    const pending = new Map<string, string>();
+    const snapshot = (entries: Map<string, string>): StyleSnapshot => ({
+        ids: [...entries.keys()],
+        // Rules are validated by the serializer, including closing style tags.
+        css: [...entries.values()].join(""),
+    });
+    return {
+        ...createStyleApi((id, rule) => {
+            if (typeof document !== "undefined") insert(id, rule, options.nonce);
+            if (rules.has(id)) return;
+            rules.set(id, rule);
+            pending.set(id, rule);
+        }),
+        getStyles: () => snapshot(rules),
+        flush: () => {
+            const styles = snapshot(pending);
+            pending.clear();
+            return styles;
+        },
+    };
 };
 
 export const __resetCssForTests = () => {

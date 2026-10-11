@@ -25,7 +25,11 @@
             "types": "./dist/testing.d.ts",
             "import": "./dist/testing.js"
         },
-        "./package.json": "./package.json"
+        "./package.json": "./package.json",
+        "./next": {
+            "types": "./dist/next.d.ts",
+            "import": "./dist/next.js"
+        }
     },
     "files": ["dist", "README.md", "LICENSE"],
     "sideEffects": false,
@@ -41,18 +45,37 @@
         "test": "vitest run",
         "test:package": "node scripts/test-package.mjs",
         "prepack": "npm run build",
-        "prepublishOnly": "npm run lint && npm run check && npm test && npm run test:package"
+        "prepublishOnly": "npm run lint && npm run check && npm test && npm run test:package && npm run test:next",
+        "test:next": "node scripts/test-next.mjs"
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.11",
         "@types/node": "^24.13.3",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
         "jsdom": "30.1.2",
+        "next": "^16.4.0",
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0",
         "typescript": "~6.0.2",
         "vitest": "^4.1.11"
     },
     "imports": {
         "#core": "./dist/core.js",
         "#mintcss": "./dist/index.js",
-        "#testing": "./dist/testing.js"
+        "#testing": "./dist/testing.js",
+        "#next": "./dist/next.js"
+    },
+    "peerDependencies": {
+        "next": "^14.0.0 || ^15.0.0 || ^16.0.0",
+        "react": "^18.2.0 || ^19.0.0"
+    },
+    "peerDependenciesMeta": {
+        "next": {
+            "optional": true
+        },
+        "react": {
+            "optional": true
+        }
     }
 }

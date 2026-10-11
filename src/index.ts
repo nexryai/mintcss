@@ -1,2 +1,2 @@
-export type { CSSDeclarations, CSSObject, CSSValue } from "#core";
-export { css, globalCss, keyframes } from "#core";
+export type { CSSDeclarations, CSSObject, CSSValue, StyleApi, StyleRegistry, StyleSnapshot } from "#core";
+export { createStyleRegistry, css, globalCss, keyframes } from "#core";

@@ -16,7 +16,8 @@
         "paths": {
             "#core": ["./src/core.ts"],
             "#mintcss": ["./src/index.ts"],
-            "#testing": ["./src/testing.ts"]
+            "#testing": ["./src/testing.ts"],
+            "#next": ["./src/next.ts"]
         }
     },
     "include": ["src/**/*.ts"]
