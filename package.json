@@ -1,7 +1,7 @@
 {
     "name": "mintcss",
-    "version": "0.1.0",
-    "description": "Small, dependency-free CSS-in-JS for browser applications, extracted from Salvia.",
+    "version": "0.1.1",
+    "description": "Small, dependency-free CSS-in-JS for browser applications.",
     "type": "module",
     "license": "MIT",
     "author": "nexryai",
