@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "ES2021",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "lib": ["ES2021", "DOM"],
+        "strict": true,
+        "verbatimModuleSyntax": true,
+        "declaration": true,
+        "declarationMap": false,
+        "noEmitOnError": true,
+        "rootDir": "src",
+        "outDir": "dist",
+        "types": [],
+        "skipLibCheck": true,
+        "paths": {
+            "#core": ["./src/core.ts"],
+            "#mintcss": ["./src/index.ts"],
+            "#testing": ["./src/testing.ts"]
+        }
+    },
+    "include": ["src/**/*.ts"]
+}

@@ -1,0 +1,58 @@
+{
+    "name": "mintcss",
+    "version": "0.1.0",
+    "description": "Small, dependency-free CSS-in-JS for browser applications, extracted from Salvia.",
+    "type": "module",
+    "license": "MIT",
+    "author": "nexryai",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/nexryai/mintcss.git"
+    },
+    "homepage": "https://github.com/nexryai/mintcss#readme",
+    "bugs": {
+        "url": "https://github.com/nexryai/mintcss/issues"
+    },
+    "keywords": ["css", "css-in-js", "styles", "typescript", "browser"],
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        },
+        "./testing": {
+            "types": "./dist/testing.d.ts",
+            "import": "./dist/testing.js"
+        },
+        "./package.json": "./package.json"
+    },
+    "files": ["dist", "README.md", "LICENSE"],
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/"
+    },
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "check": "tsc -p tsconfig.check.json",
+        "lint": "biome check .",
+        "format": "biome check --write .",
+        "test": "vitest run",
+        "test:package": "node scripts/test-package.mjs",
+        "prepack": "npm run build",
+        "prepublishOnly": "npm run lint && npm run check && npm test && npm run test:package"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "2.5.11",
+        "@types/node": "^24.13.3",
+        "jsdom": "30.1.2",
+        "typescript": "~6.0.2",
+        "vitest": "^4.1.11"
+    },
+    "imports": {
+        "#core": "./dist/core.js",
+        "#mintcss": "./dist/index.js",
+        "#testing": "./dist/testing.js"
+    }
+}
