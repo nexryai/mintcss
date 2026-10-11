@@ -170,8 +170,13 @@ so configure it when the next release is ready.
    the npm publishing workflow; saving a draft does not.
 
 The workflow checks out the release tag, verifies it matches `package.json`,
-installs dependencies, and publishes using OIDC. `prepublishOnly` runs lint,
-type checks, tests, and the packed-consumer test before publication; `prepack`
+installs dependencies, builds the package on GitHub Actions, and publishes using
+OIDC with `--provenance`. npm records the signed build provenance and displays
+“Built and signed on GitHub Actions” for versions published by this workflow.
+The manually published `0.1.0` has no build provenance; it cannot be added after
+publication, so the badge applies starting with the next release.
+`prepublishOnly` runs lint, type checks, tests, and the packed-consumer test before
+publication; `prepack`
 builds `dist`. Only compiled JavaScript, declarations, README, LICENSE, and
 package metadata are shipped. A push to `main` only runs CI.
 

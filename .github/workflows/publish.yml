@@ -36,7 +36,9 @@ jobs:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
           RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
       - run: npm ci
-      - name: Publish with OIDC
-        run: npm publish --access public --tag "$NPM_DIST_TAG"
+      - name: Build package on GitHub Actions
+        run: npm run build
+      - name: Publish with OIDC and provenance
+        run: npm publish --access public --provenance --tag "$NPM_DIST_TAG"
         env:
           NPM_DIST_TAG: ${{ github.event.release.prerelease && 'next' || 'latest' }}
