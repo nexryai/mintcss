@@ -130,18 +130,53 @@ React. CI runs these checks on Node.js 22 and 24. The Biome configuration and
 version are copied from Salvia; package-internal `#` imports keep the same rule
 against relative imports.
 
-For the first release, verify the package name is still available and sign in
-to an npm account authorized to publish it:
+The initial `0.1.0` release was published manually. Future releases use
+[Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) through
+`.github/workflows/publish.yml`. No npm token or GitHub secret is needed by the
+workflow; GitHub Actions authenticates to npm with OIDC.
+
+### One-time npm setup
+
+In the [mintcss package settings](https://www.npmjs.com/package/mintcss/access),
+add a GitHub Actions Trusted Publisher with these exact values:
+
+| Field | Value |
+| --- | --- |
+| Organization or user | `nexryai` |
+| Repository | `mintcss` |
+| Workflow filename | `publish.yml` |
+| Environment name | Leave empty |
+| Allowed actions | Enable direct publishing with `npm publish` |
+
+You can also configure it using an authenticated npm CLI session with account
+2FA enabled (npm 11.15.0 or newer):
 
 ```sh
-npm view mintcss
-npm login
-npm publish --dry-run
-npm publish
+npm trust github mintcss --repo nexryai/mintcss --file publish.yml --allow-publish
 ```
 
-The initial version is `0.1.0`. `prepack` builds `dist`; `prepublishOnly` runs the
-checks before publishing. Only compiled JavaScript, declarations, README,
-LICENSE, and package metadata are shipped. Later releases must increment the
-version before publishing. Publishing is manual; a successful CI run does not
-publish a release.
+Tokens with the bypass-2FA option cannot configure Trusted Publishers. If the
+configuration requires interactive authentication, complete it on npmjs.com.
+New Trusted Publisher configurations must successfully publish within two days,
+so configure it when the next release is ready.
+
+### Release procedure
+
+1. Increment the version in `package.json` and `package-lock.json` (for example,
+   `npm version 0.1.1 --no-git-tag-version`).
+2. Run the development checks, create a signed commit, push it, and wait for CI.
+3. Create and push a signed tag matching the version, such as `v0.1.1`.
+4. Publish a GitHub Release for that tag. The `release: published` event triggers
+   the npm publishing workflow; saving a draft does not.
+
+The workflow checks out the release tag, verifies it matches `package.json`,
+installs dependencies, and publishes using OIDC. `prepublishOnly` runs lint,
+type checks, tests, and the packed-consumer test before publication; `prepack`
+builds `dist`. Only compiled JavaScript, declarations, README, LICENSE, and
+package metadata are shipped. A push to `main` only runs CI.
+
+Stable releases publish to the npm `latest` dist-tag. For a prerelease, use a
+version such as `0.2.0-beta.1` and mark the GitHub Release as a prerelease; it
+publishes to `next`. The release's prerelease flag must agree with the version.
+Never reuse an already published package version. Ensure the release tag
+includes the publishing workflow and release validation script.
