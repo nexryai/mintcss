@@ -1,8 +1,6 @@
 # mintcss
 
-Small, dependency-free CSS-in-JS for browser applications. Extracted from
-[Salvia](https://github.com/nexryai/rosmarinus/tree/main/salvia), with no React
-runtime or type dependency. MIT licensed.
+Small, dependency-free CSS-in-JS for browser applications.
 
 ## Install
 
@@ -98,90 +96,3 @@ The serializer rejects malformed properties and rules, non-finite numeric
 values, and certain injection-like strings. It is **not an untrusted-input
 sanitizer**: pass application-authored styles and validate external data before
 using it, particularly URLs. It does not enforce an external URL policy.
-
-## Tests
-
-Tests with a DOM environment can reset the shared stylesheet between cases:
-
-```ts
-import { afterEach } from "vitest";
-import { __resetCssForTests } from "mintcss/testing";
-
-afterEach(__resetCssForTests);
-```
-
-This helper removes all mintcss rules in the current document. Use it only in tests.
-
-## Development and publishing
-
-Use Node.js 22.12 or later:
-
-```sh
-npm ci
-npm run lint
-npm run check
-npm test
-npm run test:package
-```
-
-`test:package` builds a real npm tarball, installs it into a temporary consumer,
-and checks its ESM exports, TypeScript declarations, and shipped files without
-React. CI runs these checks on Node.js 22 and 24. The Biome configuration and
-version are copied from Salvia; package-internal `#` imports keep the same rule
-against relative imports.
-
-The initial `0.1.0` release was published manually. Future releases use
-[Trusted Publishing](https://docs.npmjs.com/trusted-publishers/) through
-`.github/workflows/publish.yml`. No npm token or GitHub secret is needed by the
-workflow; GitHub Actions authenticates to npm with OIDC.
-
-### One-time npm setup
-
-In the [mintcss package settings](https://www.npmjs.com/package/mintcss/access),
-add a GitHub Actions Trusted Publisher with these exact values:
-
-| Field | Value |
-| --- | --- |
-| Organization or user | `nexryai` |
-| Repository | `mintcss` |
-| Workflow filename | `publish.yml` |
-| Environment name | Leave empty |
-| Allowed actions | Enable direct publishing with `npm publish` |
-
-You can also configure it using an authenticated npm CLI session with account
-2FA enabled (npm 11.15.0 or newer):
-
-```sh
-npm trust github mintcss --repo nexryai/mintcss --file publish.yml --allow-publish
-```
-
-Tokens with the bypass-2FA option cannot configure Trusted Publishers. If the
-configuration requires interactive authentication, complete it on npmjs.com.
-New Trusted Publisher configurations must successfully publish within two days,
-so configure it when the next release is ready.
-
-### Release procedure
-
-1. Increment the version in `package.json` and `package-lock.json` (for example,
-   `npm version 0.1.1 --no-git-tag-version`).
-2. Run the development checks, create a signed commit, push it, and wait for CI.
-3. Create and push a signed tag matching the version, such as `v0.1.1`.
-4. Publish a GitHub Release for that tag. The `release: published` event triggers
-   the npm publishing workflow; saving a draft does not.
-
-The workflow checks out the release tag, verifies it matches `package.json`,
-installs dependencies, builds the package on GitHub Actions, and publishes using
-OIDC with `--provenance`. npm records the signed build provenance and displays
-“Built and signed on GitHub Actions” for versions published by this workflow.
-The manually published `0.1.0` has no build provenance; it cannot be added after
-publication, so the badge applies starting with the next release.
-`prepublishOnly` runs lint, type checks, tests, and the packed-consumer test before
-publication; `prepack`
-builds `dist`. Only compiled JavaScript, declarations, README, LICENSE, and
-package metadata are shipped. A push to `main` only runs CI.
-
-Stable releases publish to the npm `latest` dist-tag. For a prerelease, use a
-version such as `0.2.0-beta.1` and mark the GitHub Release as a prerelease; it
-publishes to `next`. The release's prerelease flag must agree with the version.
-Never reuse an already published package version. Ensure the release tag
-includes the publishing workflow and release validation script.
