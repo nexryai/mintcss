@@ -210,3 +210,17 @@ export const __resetCssForTests = () => {
     document.head.querySelector(`style[${STYLE_ATTRIBUTE}]`)?.remove();
     styleElement = undefined;
 };
+
+/** Compose styles from left to right, recursively merging selectors and conditions. */
+export function mergeStyles(...objects: (CSSObject | undefined)[]): CSSObject {
+    const result: CSSObject = {};
+    for (const object of objects) {
+        for (const [key, value] of Object.entries(object ?? {})) {
+            const previous = Object.getOwnPropertyDescriptor(result, key)?.value as CSSObject[string];
+            const merged = typeof value === "object" ? mergeStyles(typeof previous === "object" ? previous : undefined, value) : value;
+            // Keep every key as an own property, including names inherited from Object.prototype.
+            Object.defineProperty(result, key, { value: merged, writable: true, enumerable: true, configurable: true });
+        }
+    }
+    return result;
+}

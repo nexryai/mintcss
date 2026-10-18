@@ -31,7 +31,7 @@ import { type ButtonHTMLAttributes, useRef, useState } from "react";
 import type { CSSDeclarations, CSSObject } from "mintcss";
 import { useMintcss } from "mintcss/next";
 
-import { mergeStyles } from "@/lib/ui/styles";
+import { mergeStyles } from "mintcss";
 
 export function Button({ children, className = "", onClick, onPointerDown, type = "button", ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
     const { css, keyframes } = useMintcss();
@@ -135,6 +135,31 @@ const rippleFrames = {
 } satisfies Record<string, CSSDeclarations>;
 ```
 
+## Composing styles
+
+`mergeStyles(...styles)` is a pure helper that works in browsers and on the server,
+without a document or style registry. Later declarations win; nested selectors,
+`@media`, and `@supports` objects merge recursively without modifying the inputs.
+Optional `undefined` arguments are ignored. An explicit `undefined` property
+replaces an earlier value, so the serializer omits that declaration.
+
+```ts
+import { mergeStyles } from "mintcss";
+
+const card = {
+    padding: 26,
+    "@media (width < 40rem)": { padding: 20, borderRadius: 18 },
+};
+const hero = mergeStyles(card, {
+    padding: "34px 40px",
+    "@media (width < 40rem)": { padding: 25 },
+});
+// The small-screen hero keeps borderRadius: 18 and uses padding: 25.
+```
+
+The helper merges matching object keys; it does not reorder CSS cascade rules or
+resolve shorthand/longhand conflicts. The serializer's key-order rules still apply.
+
 ## Next.js App Router
 
 The optional `mintcss/next` entry point supports Next.js 14–16 with React 18.2 or
@@ -226,6 +251,8 @@ browser calls can reuse the SSR styles. In the browser, registry styling calls
 also insert rules into the document head.
 
 ## API
+
+- `mergeStyles(...styles: (CSSObject | undefined)[]): CSSObject` composes style objects without a DOM.
 
 - `css(styles: CSSObject): string` inserts rules and returns a deterministic
   `mint-…` class name. Object key order does not change that name.

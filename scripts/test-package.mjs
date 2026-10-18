@@ -21,8 +21,9 @@ try {
         join(temporary, "consumer.mjs"),
         `
 import assert from 'node:assert/strict';
-import { createStyleRegistry, css, globalCss, keyframes } from 'mintcss';
+import { createStyleRegistry, css, globalCss, keyframes, mergeStyles } from 'mintcss';
 import { __resetCssForTests } from 'mintcss/testing';
+assert.deepEqual(mergeStyles({color: 'red'}, undefined, {color: 'blue'}), {color: 'blue'});
 const registry = createStyleRegistry();
 const serverClass = registry.css({color: 'red'});
 assert.equal(registry.getStyles().css, '.' + serverClass + '{color:red;}');
@@ -50,9 +51,9 @@ assert.equal(document.head.querySelector('style[data-mintcss]'), null);
     writeFileSync(
         join(temporary, "consumer.mts"),
         `
-import {css, globalCss, keyframes, type CSSObject, type CSSDeclarations} from 'mintcss';
+import {css, globalCss, keyframes, mergeStyles, type CSSObject, type CSSDeclarations} from 'mintcss';
 import {__resetCssForTests} from 'mintcss/testing';
-const style: CSSObject = {color: 'red', '&:hover': {opacity: 0.5}};
+const style: CSSObject = mergeStyles({color: 'red'}, undefined, {'&:hover': {opacity: 0.5}});
 const frame: CSSDeclarations = {opacity: 1};
 const className: string = css(style);
 const animation: string = keyframes({from: {opacity: 0}, to: frame});
