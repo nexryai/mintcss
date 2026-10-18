@@ -15,31 +15,113 @@ For server rendering, use `createStyleRegistry` or the Next.js integration below
 
 ## Usage
 
-```ts
-import { css, globalCss, keyframes } from "mintcss";
+```tsx
+"use client";
+import { type ButtonHTMLAttributes, useRef, useState } from "react";
 
-globalCss({
-    ":root": { "--accent": "#f4bd36" },
-    body: { margin: 0, fontFamily: "system-ui, sans-serif" },
-});
+import type { CSSDeclarations, CSSObject } from "mintcss";
+import { useMintcss } from "mintcss/next";
 
-const fade = keyframes({
-    from: { opacity: 0 },
-    to: { opacity: 1 },
-});
+import { mergeStyles } from "@/lib/ui/styles";
 
-const button = css({
-    backgroundColor: "var(--accent)",
-    borderRadius: 8,
-    padding: "8px 16px",
-    animation: `${fade} 150ms ease-out`,
-    "&:hover": { opacity: 0.8 },
-    "& > svg": { width: 16 },
-    "@media (width >= 40rem)": { padding: "12px 24px" },
-    "@supports (display: grid)": { display: "grid" },
-});
+export function Button({ children, className = "", onClick, onPointerDown, type = "button", ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
+    const { css, keyframes } = useMintcss();
+    const buttonClass = css(mergeStyles(buttonStyles, className.split(" ").includes("button-quiet") ? quietStyles : undefined));
+    const rippleClass = css({ ...rippleStyles, animation: `${keyframes(rippleFrames)} .65s ease-out forwards` });
+    const labelClass = css(labelStyles);
+    const [ripples, setRipples] = useState<{ id: number; x: number; y: number; size: number }[]>([]);
+    const sequence = useRef(0);
+    function ripple(button: HTMLButtonElement, clientX?: number, clientY?: number) {
+        const rect = button.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height) * 2;
+        setRipples((values) => [...values, { id: sequence.current++, x: (clientX === undefined ? rect.width / 2 : clientX - rect.left) - size / 2, y: (clientY === undefined ? rect.height / 2 : clientY - rect.top) - size / 2, size }]);
+    }
+    return (
+        <button
+            {...props}
+            type={type}
+            className={`button ${className} ${buttonClass}`}
+            onPointerDown={(event) => {
+                ripple(event.currentTarget, event.clientX, event.clientY);
+                onPointerDown?.(event);
+            }}
+            onClick={(event) => {
+                if (event.detail === 0) ripple(event.currentTarget);
+                onClick?.(event);
+            }}
+        >
+            <span className={`button-label ${labelClass}`}>{children}</span>
+            {ripples.map((value) => (
+                <span aria-hidden="true" key={value.id} className={`ripple ${rippleClass}`} style={{ left: value.x, top: value.y, width: value.size, height: value.size }} onAnimationEnd={() => setRipples((values) => values.filter((item) => item.id !== value.id))} />
+            ))}
+        </button>
+    );
+}
 
-document.querySelector("button")?.classList.add(button);
+const buttonStyles = {
+    position: "relative",
+    overflow: "hidden",
+    border: "0",
+    borderRadius: "10px",
+    background: "var(--accent)",
+    color: "white",
+    padding: "12px 19px",
+    fontSize: "12px",
+    fontWeight: "600",
+    cursor: "pointer",
+    isolation: "isolate",
+    whiteSpace: "nowrap",
+    transition: "background .15s,transform .15s",
+    "&:hover": {
+        background: "#4358cf",
+    },
+    "&:active": {
+        transform: "translateY(1px)",
+    },
+    "&:focus-visible": {
+        outline: "3px solid #a3aff7",
+        outlineOffset: "3px",
+    },
+    "&:disabled": {
+        opacity: ".5",
+        cursor: "wait",
+    },
+} satisfies CSSObject;
+
+const quietStyles = {
+    background: "#ebeffb",
+    color: "var(--accent)",
+    padding: "10px 14px",
+    "&:hover": {
+        background: "#e0e6fa",
+    },
+} satisfies CSSObject;
+
+const labelStyles = {
+    position: "relative",
+    zIndex: "1",
+} satisfies CSSObject;
+const rippleStyles = {
+    position: "absolute",
+    pointerEvents: "none",
+    borderRadius: "50%",
+    background: "currentColor",
+    opacity: ".18",
+    zIndex: "0",
+    "@media (prefers-reduced-motion:reduce)": {
+        animationDuration: "1ms",
+    },
+} satisfies CSSObject;
+const rippleFrames = {
+    from: {
+        transform: "scale(0)",
+        opacity: ".22",
+    },
+    to: {
+        transform: "scale(1)",
+        opacity: "0",
+    },
+} satisfies Record<string, CSSDeclarations>;
 ```
 
 In React, pass the result to `className`:
