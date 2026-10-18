@@ -1,6 +1,6 @@
 {
     "name": "mintcss",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Small, dependency-free CSS-in-JS styling library for React.",
     "type": "module",
     "license": "MIT",
