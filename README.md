@@ -14,6 +14,15 @@ the top-level styling functions require a browser `document` with a `head`.
 For server rendering, use `createStyleRegistry` or the Next.js integration below.
 
 ## Usage
+```tsx
+import { css } from "mintcss";
+
+const button = css({ backgroundColor: "#f4bd36", borderRadius: 8 });
+
+export function Button() {
+    return <button className={button}>Hello</button>;
+}
+```
 
 ```tsx
 "use client";
@@ -101,6 +110,7 @@ const labelStyles = {
     position: "relative",
     zIndex: "1",
 } satisfies CSSObject;
+
 const rippleStyles = {
     position: "absolute",
     pointerEvents: "none",
@@ -112,6 +122,7 @@ const rippleStyles = {
         animationDuration: "1ms",
     },
 } satisfies CSSObject;
+
 const rippleFrames = {
     from: {
         transform: "scale(0)",
@@ -122,18 +133,6 @@ const rippleFrames = {
         opacity: "0",
     },
 } satisfies Record<string, CSSDeclarations>;
-```
-
-In React, pass the result to `className`:
-
-```tsx
-import { css } from "mintcss";
-
-const button = css({ backgroundColor: "#f4bd36", borderRadius: 8 });
-
-export function Button() {
-    return <button className={button}>Hello</button>;
-}
 ```
 
 ## Next.js App Router
