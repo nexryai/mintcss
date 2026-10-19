@@ -28,10 +28,8 @@ export function Button() {
 "use client";
 import { type ButtonHTMLAttributes, useRef, useState } from "react";
 
-import type { CSSDeclarations, CSSObject } from "mintcss";
+import { type CSSDeclarations, type CSSObject, mergeStyles } from "mintcss";
 import { useMintcss } from "mintcss/next";
-
-import { mergeStyles } from "mintcss";
 
 export function Button({ children, className = "", onClick, onPointerDown, type = "button", ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
     const { css, keyframes } = useMintcss();
@@ -40,11 +38,13 @@ export function Button({ children, className = "", onClick, onPointerDown, type 
     const labelClass = css(labelStyles);
     const [ripples, setRipples] = useState<{ id: number; x: number; y: number; size: number }[]>([]);
     const sequence = useRef(0);
-    function ripple(button: HTMLButtonElement, clientX?: number, clientY?: number) {
+
+    const ripple = (button: HTMLButtonElement, clientX?: number, clientY?: number) => {
         const rect = button.getBoundingClientRect();
         const size = Math.max(rect.width, rect.height) * 2;
         setRipples((values) => [...values, { id: sequence.current++, x: (clientX === undefined ? rect.width / 2 : clientX - rect.left) - size / 2, y: (clientY === undefined ? rect.height / 2 : clientY - rect.top) - size / 2, size }]);
     }
+
     return (
         <button
             {...props}
@@ -133,6 +133,7 @@ const rippleFrames = {
         opacity: "0",
     },
 } satisfies Record<string, CSSDeclarations>;
+```
 ```
 
 ## Composing styles
